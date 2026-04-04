@@ -1,2 +1,3 @@
 # UltraHFT
-HFT low latency infrastruture
+
+Ultra-low-latency HFT architecture scaffold.
