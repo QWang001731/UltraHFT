@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/memory_pool_test.dir/tests/unit/memory_pool_test.cpp.o -o memory_pool_test 

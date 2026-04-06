@@ -1,0 +1,31 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.out
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+
+# Binaries (top-level)
+memory_pool_test
+order_book_test
+timer_wheel_test
+market_data_handler_test
+market_data_pipeline_demo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.vscode/
