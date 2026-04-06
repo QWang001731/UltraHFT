@@ -4,8 +4,6 @@
 #include <functional>
 #include <vector>
 #include <optional>
-#include <memory>
-#include <unordered_map>
 #include "itch_messages.hpp"
 #include "order.hpp"
 #include "order_book.hpp"
@@ -65,25 +63,14 @@ public:
      */
     void process_add_order(const itch::AddOrderMessage* msg) noexcept {
         if (!msg) return;
-        
+
         Side side = (msg->side == 'B') ? Side::Buy : Side::Sell;
-        auto order = std::make_unique<Order>(
-            msg->order_ref,
-            instrument_id_,
-            side,
-            msg->price,
-            msg->shares
-        );
-        
-        Order* order_ptr = order.get();
-        if (order_book_.add_order(order_ptr)) {
-            pending_orders_[msg->order_ref] = std::move(order);
-            
-            fire_callback(
-                MarketDataEventType::ORDER_ADDED,
-                msg->timestamp,
-                msg
-            );
+        // Construct Order on the stack; order_book_.add_order copies it into
+        // the FlatOrderMap's inline slot — zero heap allocation.
+        Order order(msg->order_ref, instrument_id_, side, msg->price, msg->shares);
+
+        if (order_book_.add_order(&order)) {
+            fire_callback(MarketDataEventType::ORDER_ADDED, msg->timestamp, msg);
             messages_processed_++;
         }
     }
@@ -114,52 +101,33 @@ public:
      */
     void process_cancel_order(const itch::CancelOrderMessage* msg) noexcept {
         if (!msg) return;
-        
+
         if (order_book_.cancel_order(msg->order_ref)) {
-            pending_orders_.erase(msg->order_ref);
-            
-            fire_callback(
-                MarketDataEventType::ORDER_CANCELLED,
-                msg->timestamp,
-                msg
-            );
+            fire_callback(MarketDataEventType::ORDER_CANCELLED, msg->timestamp, msg);
             messages_processed_++;
         }
     }
-    
+
     /**
      * @brief Process ITCH delete order message
      */
     void process_delete_order(const itch::DeleteOrderMessage* msg) noexcept {
         if (!msg) return;
-        
+
         if (order_book_.cancel_order(msg->order_ref)) {
-            pending_orders_.erase(msg->order_ref);
-            
-            fire_callback(
-                MarketDataEventType::ORDER_DELETED,
-                msg->timestamp,
-                msg
-            );
+            fire_callback(MarketDataEventType::ORDER_DELETED, msg->timestamp, msg);
             messages_processed_++;
         }
     }
-    
+
     /**
      * @brief Process ITCH replace order message
      */
     void process_replace_order(const itch::ReplaceOrderMessage* msg) noexcept {
         if (!msg) return;
-        
-        // Cancel old order
+
         order_book_.cancel_order(msg->order_ref);
-        pending_orders_.erase(msg->order_ref);
-        
-        fire_callback(
-            MarketDataEventType::ORDER_REPLACED,
-            msg->timestamp,
-            msg
-        );
+        fire_callback(MarketDataEventType::ORDER_REPLACED, msg->timestamp, msg);
         messages_processed_++;
     }
     
@@ -258,15 +226,14 @@ public:
     }
     
     [[nodiscard]] std::size_t pending_orders() const noexcept {
-        return pending_orders_.size();
+        return order_book_.order_count();
     }
-    
+
     /**
      * @brief Clear state
      */
     void reset() noexcept {
         order_book_ = OrderBook(instrument_id_);
-        pending_orders_.clear();
         total_messages_ = 0;
         messages_processed_ = 0;
     }
@@ -285,8 +252,7 @@ private:
     std::uint32_t instrument_id_;
     OrderBook order_book_;
     std::vector<MarketDataCallback> callbacks_;
-    std::unordered_map<std::uint64_t, std::unique_ptr<Order>> pending_orders_;
-    
+
     std::uint64_t total_messages_;
     std::uint64_t messages_processed_;
 };

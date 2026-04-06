@@ -1,0 +1,5 @@
+/home/wqi/UltraHFT/build/CMakeFiles/memory_pool_test.dir
+/home/wqi/UltraHFT/build/CMakeFiles/market_data_pipeline_demo.dir
+/home/wqi/UltraHFT/build/CMakeFiles/test.dir
+/home/wqi/UltraHFT/build/CMakeFiles/edit_cache.dir
+/home/wqi/UltraHFT/build/CMakeFiles/rebuild_cache.dir
